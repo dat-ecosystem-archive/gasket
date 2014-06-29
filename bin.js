@@ -4,13 +4,26 @@ var minimist = require('minimist')
 var gasket = require('./')
 
 var argv = minimist(process.argv, {
-  alias: {c:'config'},
-  default: {config:process.cwd()}
+  alias: {c:'config', v:'version', l:'list'},
+  default: {config:process.cwd()},
+  boolean: ['list', 'version']
 })
+
+var names = argv._.slice(2)
 
 if (argv.version) {
   console.log(require('./package').version)
   process.exit(0)
+}
+
+if (argv.help || (!names.length && !argv.list)) {
+  console.error('Usage: gasket [options] [task1] [task2] ...')
+  console.error()
+  console.error('  --config,  -c  To explicitly set the gasket config file/dir')
+  console.error('  --version, -v  Print the installed version')
+  console.error('  --list,    -l  List available gasket tasks')
+  console.error()
+  process.exit(1)
 }
 
 var onerror = function(err) {
@@ -25,8 +38,7 @@ var onerror = function(err) {
 
 gasket.load(argv.config, function(err, tasks) {
   if (err) return onerror(err)
-
-  var names = argv._.slice(2)
+  if (argv.list) return Object.keys(tasks).length && console.log(Object.keys(tasks).join('\n'))
 
   var loop = function() {
     var name = names.shift()
