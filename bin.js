@@ -48,7 +48,10 @@ gasket.load(argv.config, function(err, tasks) {
   var loop = function() {
     var name = names.shift()
     if (!name) return process.exit()
-    if (!tasks[name]) return loop()
+    if (!tasks[name]) {
+      if (name !== 'main') console.error(name+' does not exist')
+      return loop()
+    }
     tasks[name]().on('end', loop).pipe(process.stdout)
   }
 
