@@ -1,28 +1,75 @@
+# gasket
+
+Preconfigured pipelines for node.js
+
+```
+$ npm install -g gasket
+$ gasket # prints help
+```
+
+## Usage
+
+To setup a pipeline add a `gasket` section to your package.json
+
 ```
 {
+  "name": "my-test-app",
+  "dependencies" : {
+    "transform-uppercase": "^1.0.0"
+  },
   "gasket": {
-    "main": [
-      "wget -N http://data.openoakland.org/sites/default/files/Oakland_Parcels_06-01-13.zip",
-      "unzip -o Oakland_Parcels_06-01-13.zip",
-      {command: "gasket combine"}
-    ],
-    "combine": [
-      "csv-join http://data.openoakland.org/sites/default/files/ParcelUseCodes2013_0.csv 'Use Code' Oakland_Parcels_06-01-13.csv 'Use code'",
-      "bcsv",
-      "trim-object-stream",
-      "dat import --json --primary \"Assessor's Parcel Number (APN) sort format\""
+    "example": [
+      "echo hello world",
+      "transform-uppercase"
     ]
   }
 }
 ```
 
+To run the above `example` pipeline simply to the repo and run
+
 ```
-npm i
-gasket
-gasket --config gasket.json
-gasket fetch combine
+$ gasket example # will print HELLO WORLD
 ```
 
-* run when files change (file watcher)
-* run on timer (watch)
-* retry/crash/restart semantics
+`gasket` will spawn each command in the pipeline (it supports modules/commands installed via npm)
+and pipe them together.
+
+## Modules in pipelines
+
+In addition to commands it supports node modules that return streams
+
+```
+{
+  "gasket": [
+    "echo hello world",
+    {"module":"./uppercase.js"}
+  ]
+}
+```
+
+Where `uppercase.js` is a file that looks like this
+
+``` js
+var through = require('through2')
+module.exports = function() {
+  return through(function(data, enc, cb) {
+    cb(null, data.toString().toUpperCase())
+  })
+}
+```
+
+Running `gasket main` will produce `HELLO WORLD`
+
+## Using gasket.json
+
+If you don't have a package.json file you can add the tasks to a `gasket.json` file instead
+
+```
+{
+  "example": [
+    "echo hello world",
+    "transform-uppercase"
+  ]
+}
+```
