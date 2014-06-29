@@ -82,7 +82,7 @@ gasket.load = function(cwd, opts, cb) {
       }
 
       opts.cwd = path.dirname(file)
-      cb(null, data.gasket || data)
+      cb(null, data)
     })
   }
 
@@ -92,7 +92,7 @@ gasket.load = function(cwd, opts, cb) {
       if (data) return cb(null, gasket(data, opts))
       read('package.json', function(err, data) {
         if (err) return cb(err)
-        cb(null, gasket(data, opts))
+        cb(null, gasket(data.gasket || {}, opts))
       })
     })
   })
