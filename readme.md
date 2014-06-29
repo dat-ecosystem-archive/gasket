@@ -73,3 +73,20 @@ If you don't have a package.json file you can add the tasks to a `gasket.json` f
   ]
 }
 ```
+
+## gasket as a module
+
+You can use gasket as a module as well
+
+``` js
+var gasket = require('gasket')
+
+var pipelines = gasket({
+  example: [
+    "echo hello world",
+    "transform-uppercase"
+  ]
+})
+
+pipelines.example().pipe(process.stdout)
+```
