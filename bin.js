@@ -10,20 +10,25 @@ var argv = minimist(process.argv, {
 })
 
 var names = argv._.slice(2)
+if (names.indexOf('main') === -1) names.unshift('main')
 
 if (argv.version) {
   console.log(require('./package').version)
   process.exit(0)
 }
 
-if (argv.help || (!names.length && !argv.list)) {
+var help = function() {
   console.error('Usage: gasket [options] [task1] [task2] ...')
   console.error()
   console.error('  --config,  -c  To explicitly set the gasket config file/dir')
   console.error('  --version, -v  Print the installed version')
   console.error('  --list,    -l  List available gasket tasks')
   console.error()
-  process.exit(1)
+}
+
+if (argv.help) {
+  help()
+  process.exit()
 }
 
 var onerror = function(err) {
