@@ -35,6 +35,27 @@ $ gasket example # will print HELLO WORLD
 `gasket` will spawn each command in the pipeline (it supports modules/commands installed via npm)
 and pipe them together.
 
+If you want to wait for the previous command to finish add `null` to the pipeline
+
+```
+{
+  "gasket": {
+    "example": [
+      "echo hello world",
+      null,
+      "echo hello afterwards"
+    ]
+  }
+}
+```
+
+Running the above will print
+
+```
+hello world
+hello afterwards
+```
+
 ## Modules in pipelines
 
 In addition to commands it supports node modules that return streams
