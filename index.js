@@ -5,6 +5,7 @@ var resolve = require('resolve')
 var ldjson = require('ldjson-stream')
 var splicer = require('stream-splicer')
 var duplexer = require('duplexer2')
+var stream = require('stream')
 var fs = require('fs')
 
 var PATH_SEP = process.platform === 'win32' ? ';' : ':'
@@ -58,8 +59,36 @@ var gasket = function(config, opts) {
 
   return Object.keys(config).reduce(function(result, key) {
     var pipeline = [].concat(config[key] || [])
+    var list = []
+
+    var current = []
+    pipeline.forEach(function(p) {
+      if (p) return current.push(p)
+      list.push(current)
+      current = []
+    })
+    if (current.length) list.push(current)
+
     result[key] = function() {
-      return compile(key, pipeline, opts)
+      if (list.length < 2) return compile(key, list[0], opts)
+
+      var output = new stream.PassThrough()
+      var s = splicer(output)
+      var i = 0
+
+      var loop = function() {
+        var next = compile(key, list[i++], opts)
+        if (i === list.length) return s.unshift(next)
+        next.on('end', function() {
+          s.shift()
+          loop()
+        })
+        s.unshift(next)
+      }
+
+      loop()
+
+      return s
     }
     return result
   }, {})
