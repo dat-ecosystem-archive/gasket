@@ -116,7 +116,7 @@ gasket.load = function(cwd, opts, cb) {
   }
 
   read('.', function(err, data) {
-    if (data) return cb(null, gasket(data, opts))
+    if (data) return cb(null, gasket(data.gasket || data, opts))
     read('gasket.json', function(err, data) {
       if (data) return cb(null, gasket(data, opts))
       read('package.json', function(err, data) {
