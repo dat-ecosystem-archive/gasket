@@ -5,6 +5,7 @@ var resolve = require('resolve')
 var ldjson = require('ldjson-stream')
 var splicer = require('stream-splicer')
 var duplexer = require('duplexer2')
+var fs = require('fs')
 
 var PATH_SEP = process.platform === 'win32' ? ';' : ':'
 
@@ -48,8 +49,9 @@ var compile = function(name, pipeline, opts) {
   return splicer(pipeline)
 }
 
-module.exports = function(config, opts) {
+var gasket = function(config, opts) {
   if (!opts) opts = {}
+  if (Array.isArray(config)) config = {main:config}
 
   opts.cwd = path.resolve(opts.cwd || '.')
   opts.env = opts.env || process.env
@@ -62,3 +64,38 @@ module.exports = function(config, opts) {
     return result
   }, {})
 }
+
+
+gasket.load = function(cwd, opts, cb) {
+  if (typeof opts === 'function') return gasket.load(cwd, null, opts)
+  if (!opts) opts = {}
+
+  var read = function(file, cb) {
+    file = path.join(cwd, file)
+    fs.readFile(file, 'utf-8', function(err, data) {
+      if (err) return cb(err)
+
+      try {
+        data = JSON.parse(data)
+      } catch (err) {
+        return cb(err)
+      }
+
+      opts.cwd = path.dirname(file)
+      cb(null, data.gasket || data)
+    })
+  }
+
+  read('.', function(err, data) {
+    if (data) return cb(null, gasket(data, opts))
+    read('gasket.json', function(err, data) {
+      if (data) return cb(null, gasket(data, opts))
+      read('package.json', function(err, data) {
+        if (err) return cb(err)
+        cb(null, gasket(data, opts))
+      })
+    })
+  })
+}
+
+module.exports = gasket
