@@ -10,7 +10,7 @@ var argv = minimist(process.argv, {
 })
 
 var names = argv._.slice(2)
-if (names.indexOf('main') === -1) names.unshift('main')
+if (!names.length) names.push('main')
 
 if (argv.version) {
   console.log(require('./package').version)
