@@ -41,13 +41,13 @@ var onerror = function(err) {
   }
 }
 
-gasket.load(argv.config, function(err, tasks) {
+gasket.load(argv.config, {stderr:true}, function(err, tasks) {
   if (err) return onerror(err)
   if (argv.list) return Object.keys(tasks).length && console.log(Object.keys(tasks).join('\n'))
 
   var loop = function() {
     var name = names.shift()
-    if (!name) return process.exit()
+    if (!name) return
     if (!tasks[name]) {
       if (name !== 'main') console.error(name+' does not exist')
       return loop()

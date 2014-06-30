@@ -33,7 +33,9 @@ var compileCommand = function(p, opts) {
     cwd: opts.cwd
   })
 
-  child.stderr.resume()
+  if (opts.stderr) child.stderr.pipe(process.stderr)
+  else child.stderr.resume()
+
   return duplexer(child.stdin, child.stdout)
 }
 
