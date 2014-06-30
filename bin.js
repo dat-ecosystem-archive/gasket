@@ -6,7 +6,8 @@ var gasket = require('./')
 var argv = minimist(process.argv, {
   alias: {c:'config', v:'version', l:'list'},
   default: {config:process.cwd()},
-  boolean: ['list', 'version']
+  boolean: ['list', 'version'],
+  '--': true
 })
 
 var names = argv._.slice(2)
@@ -41,7 +42,7 @@ var onerror = function(err) {
   }
 }
 
-gasket.load(argv.config, {stderr:true}, function(err, tasks) {
+gasket.load(argv.config, {stderr:true, extra:argv['--']}, function(err, tasks) {
   if (err) return onerror(err)
   if (argv.list) return Object.keys(tasks).length && console.log(Object.keys(tasks).join('\n'))
 

@@ -58,9 +58,10 @@ var gasket = function(config, opts) {
 
   opts.cwd = path.resolve(opts.cwd || '.')
   opts.env = opts.env || process.env
+  if (opts.extra && !config.main) config.main = []
 
   return Object.keys(config).reduce(function(result, key) {
-    var pipeline = [].concat(config[key] || [])
+    var pipeline = [].concat(config[key] || []).concat(opts.extra || [])
     var list = []
 
     var current = []
