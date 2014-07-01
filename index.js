@@ -73,7 +73,7 @@ var gasket = function(config, opts) {
     if (current.length) list.push(current)
 
     result[key] = function() {
-      if (list.length < 2) return compile(key, list[0], opts)
+      if (list.length < 2) return compile(key, list[0] || [], opts)
 
       var output = new stream.PassThrough()
       var s = splicer(output)
