@@ -53,7 +53,8 @@ gasket.load(argv.config, {stderr:true, extra:argv['--']}, function(err, tasks) {
       if (name !== 'main') console.error(name+' does not exist')
       return loop()
     }
-    tasks[name]().on('end', loop).pipe(process.stdout)
+    process.stdin.pipe(tasks[name]().on('end', loop)).pipe(process.stdout)
+    process.stdin.unref()
   }
 
   loop()
