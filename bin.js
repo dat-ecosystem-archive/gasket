@@ -105,6 +105,25 @@ tab('add')
     })
   })
 
+tab('show')
+  (pipes)
+  (function(pipe, opts) {
+    if (!pipe) pipe = 'main'
+    load(opts, function(gasket) {
+      pipe = (gasket.toJSON()[pipe] || [])
+        .map(function(line) {
+          return line ? (' | '+line) : '\n'
+        })
+        .join('').split('\n')
+        .map(function(line) {
+          return line.replace(/^ \| /, '')
+        })
+        .join('\n').trim()
+
+      console.log(pipe)
+    })
+  })
+
 tab('rm')
   (pipes)
   (function(pipe, opts) {
