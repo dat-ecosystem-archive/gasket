@@ -42,7 +42,9 @@ var onerror = function(err) {
   }
 }
 
-gasket.load(argv.config, {stderr:true, extra:argv['--']}, function(err, tasks) {
+var params = argv['--']
+
+gasket.load(argv.config, {stderr:true, params:params}, function(err, tasks) {
   if (err) return onerror(err)
   if (argv.list) return Object.keys(tasks).length && console.log(Object.keys(tasks).join('\n'))
 

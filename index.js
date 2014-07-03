@@ -1,5 +1,5 @@
 var path = require('path')
-var execspawn = require('execspawn')
+var execspawn = require('npm-execspawn')
 var xtend = require('xtend')
 var resolve = require('resolve')
 var ldjson = require('ldjson-stream')
@@ -8,30 +8,13 @@ var duplexer = require('duplexer2')
 var stream = require('stream')
 var fs = require('fs')
 
-var PATH_SEP = process.platform === 'win32' ? ';' : ':'
-
-var npmRunPath = function(cwd, PATH) {
-  var prev = cwd
-  var result = []
-  while (true) {
-    result.push(path.join(cwd, 'node_modules/.bin'))
-    var parent = path.join(cwd, '..')
-    if (parent === cwd) return result.concat(PATH).join(PATH_SEP)
-    cwd = parent
-  }
-}
-
 var compileModule = function(p, opts) {
   if (!p.exports) p.exports = require(resolve.sync(p.module, {basedir:opts.cwd}))
   return p.json ? splicer(ldjson.parse(), p.exports(p), ldjson.serialize()) : p.exports(p)
 }
 
 var compileCommand = function(p, opts) {
-  var env = xtend({PATH:npmRunPath(opts.cwd, opts.env.PATH || process.env.PATH)}, opts.env)
-  var child = execspawn(p.command, {
-    env: env,
-    cwd: opts.cwd
-  })
+  var child = execspawn(p.command, p.params, opts)
 
   if (opts.stderr) child.stderr.pipe(process.stderr)
   else child.stderr.resume()
@@ -44,6 +27,7 @@ var compile = function(name, pipeline, opts) {
     .map(function(p, i) {
       if (typeof p === 'string') p = {command:p}
       if (typeof p === 'function') p = {exports:p, module:true}
+      if (!p.params) p.params = [].concat(name, opts.params || [])
       if (p.command) return compileCommand(p, opts)
       if (p.module) return compileModule(p, opts)
       throw new Error('Unsupported pipeline #'+i+' in '+name)
@@ -52,27 +36,35 @@ var compile = function(name, pipeline, opts) {
   return splicer(pipeline)
 }
 
-var gasket = function(config, opts) {
-  if (!opts) opts = {}
+var split = function(pipeline) {
+  var list = []
+  var current = []
+
+  pipeline = [].concat(pipeline || [])
+  pipeline.forEach(function(p) {
+    if (p) return current.push(p)
+    list.push(current)
+    current = []
+  })
+
+  if (current.length) list.push(current)
+  return list
+}
+
+var gasket = function(config, defaults) {
+  if (!defaults) defaults = {}
   if (Array.isArray(config)) config = {main:config}
 
-  opts.cwd = path.resolve(opts.cwd || '.')
-  opts.env = opts.env || process.env
-  if (opts.extra && !config.main) config.main = []
+  defaults.cwd = path.resolve(defaults.cwd || '.')
+  defaults.env = defaults.env || process.env
 
   return Object.keys(config).reduce(function(result, key) {
-    var pipeline = [].concat(config[key] || []).concat(opts.extra || [])
-    var list = []
+    var list = split(config[key])
 
-    var current = []
-    pipeline.forEach(function(p) {
-      if (p) return current.push(p)
-      list.push(current)
-      current = []
-    })
-    if (current.length) list.push(current)
+    result[key] = function(opts) {
+      if (Array.isArray(opts)) opts = {params:opts}
+      opts = xtend(defaults, opts)
 
-    result[key] = function() {
       if (list.length < 2) return compile(key, list[0] || [], opts)
 
       var output = new stream.PassThrough()
