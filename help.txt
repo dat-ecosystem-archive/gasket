@@ -1,0 +1,14 @@
+Usage: gasket [command]
+
+Available commands are:
+  run [pipe]            run a pipe (defaults to main)
+  exec [script]         execute a script in the local context
+  add [pipe] [script]   add a script to a pipe
+  rm [pipe]             remove a pipe
+  ls                    list available pipes
+  completion            setup auto completion
+  help                  print this help
+  version               print the installed version
+
+Per default ./package.json or ./gasket.json is used to find pipelines
+Use -c,--config to use another pipeline config

@@ -1,72 +1,152 @@
 #!/usr/bin/env node
 
-var minimist = require('minimist')
+var tab = require('tabalot')
+var fs = require('fs')
+var path = require('path')
 var gasket = require('./')
 
-var argv = minimist(process.argv, {
-  alias: {c:'config', v:'version', l:'list'},
-  default: {config:process.cwd()},
-  boolean: ['list', 'version'],
-  '--': true
-})
-
-var names = argv._.slice(2)
-if (!names.length) names.push('main')
-
-if (argv.version) {
-  console.log(require('./package').version)
-  process.exit(0)
-}
-
-var help = function() {
-  console.error('Usage: gasket [options] [task1] [task2] ...')
-  console.error()
-  console.error('  --config,  -c  To explicitly set the gasket config file/dir')
-  console.error('  --version, -v  Print the installed version')
-  console.error('  --list,    -l  List available gasket tasks')
-  console.error()
-}
-
-if (argv.help) {
-  help()
-  process.exit()
+var help = function(code) {
+  console.log(fs.readFileSync(path.join(__dirname, 'help.txt'), 'utf-8'))
+  process.exit(code)
 }
 
 var onerror = function(err) {
-  if (err.code === 'ENOENT') {
-    console.error('Could not find gasket config (gasket.json or package.json)')
-    process.exit(2)
-  } else {
-    console.error(err.message)
-    process.exit(3)
-  }
+  console.error(err.message || err)
+  process.exit(2)
 }
 
-var params = argv['--']
-
-gasket.load(argv.config, {stderr:true, params:params}, function(err, tasks) {
-  if (err) return onerror(err)
-  if (argv.list) return Object.keys(tasks).length && console.log(Object.keys(tasks).join('\n'))
-
-  var first = true
-  var loop = function() {
-    var name = names.shift()
-    if (!name) return process.exit(0)
-    if (!tasks[name]) {
-      if (name !== 'main') console.error(name+' does not exist')
-      return loop()
-    }
-
-    var t = tasks[name]()
-
-    if (first) {
-      first = false
-      process.stdin.pipe(t)
-    }
-
-    t.pipe(process.stdout)
-    t.on('end', loop)
+var save = function(filename, data) {
+  var write = function(data) {
+    fs.writeFile(filename, JSON.stringify(data, null, 2), function(err) {
+      if (err) return onerror(err)
+      process.exit()
+    })
   }
 
-  loop()
-})
+  if (path.basename(filename) === 'gasket.json') return write(data)
+
+  fs.readFile(filename, 'utf-8', function(err, pkg) {
+    if (err) return onerror(err)
+    try {
+      pkg = JSON.parse(pkg)
+    } catch (err) {
+      return onerror(err)
+    }
+    pkg.gasket = data
+    write(pkg)
+  })
+}
+
+var load = function(opts, cb) {
+  gasket.load(opts.config, function(err, g) {
+    if (err) return onerror(err)
+    cb(g)
+  })
+}
+
+// completions
+
+var bin = function(cb) {
+  fs.readdir('node_modules/.bin', cb)
+}
+
+var pipes = function(pipe, opts, cb) {
+  load(opts, function(gasket) {
+    cb(null, gasket.list().filter(function(pipe) {
+      return opts._.indexOf(pipe, 1) === -1
+    }))
+  })
+}
+
+// commands
+
+tab()
+  ('--config', '-c', '@file')
+
+tab('ls')
+  (function(opts) {
+    load(opts, function(gasket) {
+      console.log(gasket.list().join('\n'))
+    })
+  })
+
+tab('exec')
+  ('*', bin)
+  (function(opts) {
+    if (!opts._.length) return onerror('Usage: gasket exec [commands...]')
+    load(opts, function(gasket) {
+      process.stdin
+        .pipe(gasket.exec(opts._.join(' '), opts['--'] || [], {stderr:true})).on('end', process.exit)
+        .pipe(process.stdout)
+    })
+  })
+
+tab('version')
+  (function() {
+    console.log(require('./package').version)
+  })
+
+tab('help')
+  (function() {
+    help(0)
+  })
+
+tab('add')
+  (pipes)
+  ('*', bin)
+  (function(pipe, opts) {
+    if (!pipe || opts._.length < 3) return onerror('Usage: gasket add [pipe] [command]')
+
+    load(opts, function(gasket) {
+      var data = gasket.toJSON()
+      if (!data[pipe]) data[pipe] = []
+      data[pipe].push(opts._.slice(2).join(' '))
+      save(gasket.config, data)
+    })
+  })
+
+tab('rm')
+  (pipes)
+  (function(pipe, opts) {
+    if (!pipe) return onerror('Usage: gasket rm [pipe]')
+
+    load(opts, function(gasket) {
+      var data = gasket.toJSON()
+      delete data[pipe]
+      save(gasket.config, data)
+    })
+  })
+
+tab('run')
+  ('*', pipes)
+  (function(opts) {
+    var names = opts._.slice(1)
+    if (!names.length) names = ['main']
+
+    load(opts, function(gasket) {
+      var first = true
+      var loop = function() {
+        var name = names.shift()
+        if (!name) return process.exit()
+
+        if (!gasket.has(name)) {
+          if (name !== 'main') console.error(name+' does not exist')
+          return loop()
+        }
+
+        var t = gasket.run(name, opts['--'] || [])
+
+        if (first) {
+          first = false
+          process.stdin.pipe(t)
+        }
+
+        t.pipe(process.stdout)
+        t.on('end', loop)
+      }
+
+      loop()
+    })
+  })
+
+tab.parse({'--':true}) || help(1)
