@@ -48,15 +48,24 @@ gasket.load(argv.config, {stderr:true, params:params}, function(err, tasks) {
   if (err) return onerror(err)
   if (argv.list) return Object.keys(tasks).length && console.log(Object.keys(tasks).join('\n'))
 
+  var first = true
   var loop = function() {
     var name = names.shift()
-    if (!name) return
+    if (!name) return process.exit(0)
     if (!tasks[name]) {
       if (name !== 'main') console.error(name+' does not exist')
       return loop()
     }
-    process.stdin.pipe(tasks[name]().on('end', loop)).pipe(process.stdout)
-    process.stdin.unref()
+
+    var t = tasks[name]()
+
+    if (first) {
+      first = false
+      process.stdin.pipe(t)
+    }
+
+    t.pipe(process.stdout)
+    t.on('end', loop)
   }
 
   loop()
