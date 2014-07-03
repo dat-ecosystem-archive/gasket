@@ -5,6 +5,7 @@ Preconfigured pipelines for node.js
 ```
 $ npm install -g gasket
 $ gasket # prints help
+$ gasket completion --save # install tab completion
 ```
 
 ## Usage
@@ -29,7 +30,7 @@ To setup a pipeline add a `gasket` section to your package.json
 To run the above `example` pipeline simply to the repo and run
 
 ```
-$ gasket example # will print HELLO WORLD
+$ gasket run example # will print HELLO WORLD
 ```
 
 `gasket` will spawn each command in the pipeline (it supports modules/commands installed via npm)
@@ -84,7 +85,7 @@ If your module reads/writes JSON object set `json:true` in the pipeline.
 That will make gasket parse newline seperated JSON before parsing the objects to the stream
 and stringify the output.
 
-Running `gasket main` will produce `HELLO WORLD`
+Running `gasket run main` will produce `HELLO WORLD`
 
 ## Using gasket.json
 
@@ -113,5 +114,5 @@ var pipelines = gasket({
   ]
 })
 
-pipelines.example().pipe(process.stdout)
+pipelines.run('example').pipe(process.stdout)
 ```
