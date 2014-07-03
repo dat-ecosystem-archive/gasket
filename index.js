@@ -68,6 +68,7 @@ var split = function(pipeline) {
 
 var gasket = function(config, defaults) {
   if (!defaults) defaults = {}
+  if (!config) config = {}
   if (Array.isArray(config)) config = {main:config}
 
   var that = {}

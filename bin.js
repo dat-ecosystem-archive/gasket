@@ -74,11 +74,9 @@ tab('exec')
   ('*', bin)
   (function(opts) {
     if (opts._.length < 2) return onerror('Usage: gasket exec [commands...]')
-    load(opts, function(gasket) {
-      process.stdin
-        .pipe(gasket.exec(opts._.slice(1).join(' '), opts['--'] || [], {stderr:true})).on('end', process.exit)
-        .pipe(process.stdout)
-    })
+    process.stdin
+      .pipe(gasket().exec(opts._.slice(1).join(' '), opts['--'] || [], {stderr:true})).on('end', process.exit)
+      .pipe(process.stdout)
   })
 
 tab('version')
