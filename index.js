@@ -15,11 +15,26 @@ var compileModule = function(p, opts) {
 
 var compileCommand = function(p, opts) {
   var child = execspawn(p.command, p.params, opts)
+  var out
 
-  if (opts.stderr) child.stderr.pipe(process.stderr)
-  else child.stderr.resume()
+  if (opts.stderr) {
+    out = stream.PassThrough()
+    child.stderr.pipe(out, {end:false})
+    child.stdout.pipe(out, {end:false})
 
-  return duplexer(child.stdin, child.stdout)
+    var count = 0
+    var onend = function() {
+      if (++count === 2) out.end()
+    }
+
+    child.stdout.once('end', onend)
+    child.stderr.once('end', onend)
+  } else {
+    out = child.stdout
+    child.stderr.resume()
+  }
+
+  return duplexer(child.stdin, out)
 }
 
 var compile = function(name, pipeline, opts) {
@@ -55,10 +70,12 @@ var gasket = function(config, defaults) {
   if (!defaults) defaults = {}
   if (Array.isArray(config)) config = {main:config}
 
-  defaults.cwd = path.resolve(defaults.cwd || '.')
-  defaults.env = defaults.env || process.env
+  var that = {}
 
-  return Object.keys(config).reduce(function(result, key) {
+  that.cwd = defaults.cwd = path.resolve(defaults.cwd || '.')
+  that.env = defaults.env = defaults.env || process.env
+
+  var pipes = Object.keys(config).reduce(function(result, key) {
     var list = split(config[key])
 
     result[key] = function(opts) {
@@ -87,6 +104,29 @@ var gasket = function(config, defaults) {
     }
     return result
   }, {})
+
+  that.list = function() {
+    return Object.keys(pipes)
+  }
+
+  that.has = function(name) {
+    return !!pipes[name]
+  }
+
+  that.run = function(name, opts) {
+    return pipes[name] && pipes[name](opts)
+  }
+
+  that.exec = function(cmd, params, opts) {
+    if (!Array.isArray(params)) return that.exec(cmd, [], params)
+    return compileCommand({command:cmd, params:['exec'].concat(params)}, opts || {})
+  }
+
+  that.toJSON = function() {
+    return config
+  }
+
+  return that
 }
 
 
@@ -94,8 +134,16 @@ gasket.load = function(cwd, opts, cb) {
   if (typeof opts === 'function') return gasket.load(cwd, null, opts)
   if (!opts) opts = {}
 
+  var ready = function(pipelines, filename) {
+    var name = path.basename(filename)
+    if (name !== 'gasket.json') pipelines = pipelines.gasket || {}
+    var g = gasket(pipelines, opts)
+    g.config = filename
+    cb(null, g)
+  }
+
   var read = function(file, cb) {
-    file = path.join(cwd, file)
+    file = path.resolve(process.cwd(), path.join(cwd || '.', file))
     fs.readFile(file, 'utf-8', function(err, data) {
       if (err) return cb(err)
 
@@ -106,17 +154,17 @@ gasket.load = function(cwd, opts, cb) {
       }
 
       opts.cwd = path.dirname(file)
-      cb(null, data)
+      cb(null, data, file)
     })
   }
 
-  read('.', function(err, data) {
-    if (data) return cb(null, gasket(data.gasket || data, opts))
-    read('gasket.json', function(err, data) {
-      if (data) return cb(null, gasket(data, opts))
-      read('package.json', function(err, data) {
+  read('.', function(err, data, filename) {
+    if (data) return ready(data, filename)
+    read('gasket.json', function(err, data, filename) {
+      if (data) return ready(data, filename)
+      read('package.json', function(err, data, filename) {
         if (err) return cb(err)
-        cb(null, gasket(data.gasket || {}, opts))
+        ready(data, filename)
       })
     })
   })
