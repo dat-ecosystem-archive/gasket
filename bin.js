@@ -73,10 +73,10 @@ tab('ls')
 tab('exec')
   ('*', bin)
   (function(opts) {
-    if (!opts._.length) return onerror('Usage: gasket exec [commands...]')
+    if (opts._.length < 2) return onerror('Usage: gasket exec [commands...]')
     load(opts, function(gasket) {
       process.stdin
-        .pipe(gasket.exec(opts._.join(' '), opts['--'] || [], {stderr:true})).on('end', process.exit)
+        .pipe(gasket.exec(opts._.slice(1).join(' '), opts['--'] || [], {stderr:true})).on('end', process.exit)
         .pipe(process.stdout)
     })
   })
