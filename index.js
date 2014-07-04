@@ -161,16 +161,12 @@ gasket.load = function(cwd, opts, cb) {
 
   read('.', function(err, data, filename) {
     // If it found ./package.json file but couldn't be parsed
-    if (err.name === 'SyntaxError') {
-      cb(err);
-    }
-    else if (data) return ready(data, filename);
+    if (err && err.name === 'SyntaxError') return cb(err);
+    if (data) return ready(data, filename);
     read('gasket.json', function(err, data, filename) {
       // If it found gasket.json it but couldn't be parsed
-      if (err.name === 'SyntaxError') {
-        cb(err);
-      }
-      else if (data) return ready(data, filename);
+      if (err && err.name === 'SyntaxError') return cb(err);
+      if (data) return ready(data, filename);
       read('package.json', function(err, data, filename) {
         if (err) return cb(err)
         ready(data, filename)
