@@ -5,6 +5,10 @@ var fs = require('fs')
 var path = require('path')
 var gasket = require('./')
 
+process.stdout.on('error', function(err) {
+  if (err.code !== 'EPIPE') throw err
+})
+
 var help = function(code) {
   console.log(fs.readFileSync(path.join(__dirname, 'help.txt'), 'utf-8'))
   process.exit(code)
