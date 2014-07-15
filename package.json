@@ -1,6 +1,6 @@
 {
   "name": "gasket",
-  "version": "1.1.3",
+  "version": "1.1.4",
   "main": "index.js",
   "repository": "datproject/gasket",
   "scripts": {
