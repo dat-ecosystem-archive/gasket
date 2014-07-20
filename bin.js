@@ -85,7 +85,7 @@ tab('exec')
 
 tab('version')
   (function() {
-    console.log(require('./package').version)
+    console.log(require('./package.json').version)
   })
 
 tab('help')
