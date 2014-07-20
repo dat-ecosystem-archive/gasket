@@ -2,6 +2,8 @@
 
 Preconfigured pipelines for node.js
 
+![logo](gasket.png)
+
 ```
 $ npm install -g gasket
 $ gasket # prints help
