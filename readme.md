@@ -2,7 +2,7 @@
 
 Preconfigured pipelines for node.js
 
-![logo](gasket.png)
+![logo](https://raw.githubusercontent.com/datproject/gasket/master/gasket.png)
 
 ```
 $ npm install -g gasket
