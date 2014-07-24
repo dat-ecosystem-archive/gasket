@@ -84,7 +84,7 @@ module.exports = function() {
 ```
 
 If your module reads/writes JSON object set `json:true` in the pipeline.
-That will make gasket parse newline seperated JSON before parsing the objects to the stream
+That will make gasket parse newline separated JSON before parsing the objects to the stream
 and stringify the output.
 
 Running `gasket run main` will produce `HELLO WORLD`
