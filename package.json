@@ -1,6 +1,6 @@
 {
   "name": "gasket",
-  "version": "1.1.5",
+  "version": "1.2.0",
   "description": "Preconfigured pipelines for node.js",
   "main": "index.js",
   "repository": {
@@ -20,7 +20,6 @@
     "tabalot": "^0.6.0",
     "xtend": "^3.0.0"
   },
-  "description": "Preconfigured pipelines for node.js",
   "bugs": {
     "url": "https://github.com/datproject/gasket/issues"
   },
