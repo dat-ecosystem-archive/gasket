@@ -79,7 +79,7 @@ tab('exec')
   (function(opts) {
     if (opts._.length < 2) return onerror('Usage: gasket exec [commands...]')
     process.stdin
-      .pipe(gasket().exec(opts._.slice(1).join(' '), opts['--'] || [], {stderr:true})).on('end', process.exit)
+      .pipe(gasket({stderr:true}).exec(opts._.slice(1).join(' '), opts['--'] || [])).on('end', process.exit)
       .pipe(process.stdout)
   })
 
@@ -144,6 +144,7 @@ tab('run')
     var names = opts._.slice(1)
     if (!names.length) names = ['main']
 
+    if (opts.stderr === undefined) opts.stderr = true
     load(opts, function(gasket) {
       var first = true
       var loop = function() {

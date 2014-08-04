@@ -15,26 +15,13 @@ var compileModule = function(p, opts) {
 
 var compileCommand = function(p, opts) {
   var child = execspawn(p.command, p.params, opts)
-  var out
 
-  if (opts.stderr) {
-    out = stream.PassThrough()
-    child.stderr.pipe(out, {end:false})
-    child.stdout.pipe(out, {end:false})
+  if (opts.stderr === true) opts.stderr = process.stderr
 
-    var count = 0
-    var onend = function() {
-      if (++count === 2) out.end()
-    }
+  if (opts.stderr) child.stderr.pipe(opts.stderr)
+  else child.stderr.resume()
 
-    child.stdout.once('end', onend)
-    child.stderr.once('end', onend)
-  } else {
-    out = child.stdout
-    child.stderr.resume()
-  }
-
-  return duplexer(child.stdin, out)
+  return duplexer(child.stdin, child.stderr)
 }
 
 var compile = function(name, pipeline, opts) {
