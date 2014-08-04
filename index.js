@@ -21,7 +21,7 @@ var compileCommand = function(p, opts) {
   if (opts.stderr) child.stderr.pipe(opts.stderr)
   else child.stderr.resume()
 
-  return duplexer(child.stdin, child.stderr)
+  return duplexer(child.stdin, child.stdout)
 }
 
 var compile = function(name, pipeline, opts) {
