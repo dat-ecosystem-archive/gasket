@@ -1,6 +1,6 @@
 {
   "name": "gasket",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Preconfigured pipelines for node.js",
   "main": "index.js",
   "repository": {
