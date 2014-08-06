@@ -101,7 +101,12 @@ var gasket = function(config, defaults) {
     return !!pipes[name]
   }
 
-  that.run = function(name, opts) {
+  that.run = function(name, opts, extra) {
+    if (Array.isArray(opts)) {
+      extra = extra || {}
+      extra.params = opts
+      opts = extra
+    }
     return pipes[name] && pipes[name](opts)
   }
 
