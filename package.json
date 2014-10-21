@@ -12,6 +12,7 @@
   },
   "license": "BSD",
   "dependencies": {
+    "debug-stream": "^2.0.2",
     "duplexer2": "0.0.2",
     "ldjson-stream": "^1.1.0",
     "npm-execspawn": "^1.0.6",
@@ -19,6 +20,11 @@
     "stream-splicer": "^1.3.0",
     "tabalot": "^0.6.0",
     "xtend": "^3.0.0"
+  },
+  "gasket": {
+    "test": [
+      "cat -"
+    ]
   },
   "bugs": {
     "url": "https://github.com/datproject/gasket/issues"

@@ -7,6 +7,7 @@ var splicer = require('stream-splicer')
 var duplexer = require('duplexer2')
 var stream = require('stream')
 var fs = require('fs')
+var debug = require('debug-stream')('gasket')
 
 var compileModule = function(p, opts) {
   if (!p.exports) p.exports = require(resolve.sync(p.module, {basedir:opts.cwd}))
@@ -25,13 +26,18 @@ var compileCommand = function(p, opts) {
 }
 
 var compile = function(name, pipeline, opts) {
+  var wrap = function(i, msg, stream) {
+    if (!process.env.DEBUG) return stream
+    return splicer([debug('#'+i+ ' stdin:  '+msg), stream, debug('#'+i+' stdout: '+msg)])
+  }
+
   pipeline = pipeline
     .map(function(p, i) {
       if (typeof p === 'string') p = {command:p}
       if (typeof p === 'function') p = {exports:p, module:true}
       if (!p.params) p.params = [].concat(name, opts.params || [])
-      if (p.command) return compileCommand(p, opts)
-      if (p.module) return compileModule(p, opts)
+      if (p.command) return wrap(i, '('+p.command+')', compileCommand(p, opts))
+      if (p.module) return wrap(i, '('+p.module+')', compileModule(p, opts))
       throw new Error('Unsupported pipeline #'+i+' in '+name)
     })
 
