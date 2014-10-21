@@ -5,6 +5,10 @@ var fs = require('fs')
 var path = require('path')
 var gasket = require('./')
 
+process.stdout.setMaxListeners(0)
+process.stderr.setMaxListeners(0)
+process.stdin.setMaxListeners(0)
+
 process.stdout.on('error', function(err) {
   if (err.code !== 'EPIPE') throw err
 })
