@@ -2,7 +2,7 @@ var path = require('path')
 var execspawn = require('npm-execspawn')
 var xtend = require('xtend')
 var resolve = require('resolve')
-var ldjson = require('ldjson-stream')
+var ndjson = require('ndjson')
 var splicer = require('stream-splicer')
 var duplexer = require('duplexer2')
 var stream = require('stream')
@@ -11,7 +11,7 @@ var debug = require('debug-stream')('gasket')
 
 var compileModule = function(p, opts) {
   if (!p.exports) p.exports = require(resolve.sync(p.module, {basedir:opts.cwd}))
-  return p.json ? splicer(ldjson.parse(), p.exports(p), ldjson.serialize()) : p.exports(p)
+  return p.json ? splicer([ndjson.parse(), p.exports(p), ndjson.serialize()]) : p.exports(p)
 }
 
 var compileCommand = function(p, opts) {
