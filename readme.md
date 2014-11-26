@@ -14,7 +14,7 @@ $ gasket completion --save # install tab completion
 
 To setup a pipeline add a `gasket` section to your package.json
 
-```
+```json
 {
   "name": "my-test-app",
   "dependencies" : {
@@ -40,7 +40,7 @@ and pipe them together.
 
 If you want to wait for the previous command to finish add `null` to the pipeline
 
-```
+```json
 {
   "gasket": {
     "example": [
@@ -63,7 +63,7 @@ hello afterwards
 
 In addition to commands it supports node modules that return streams
 
-```
+```json
 {
   "gasket": [
     "echo hello world",
@@ -93,7 +93,7 @@ Running `gasket run main` will produce `HELLO WORLD`
 
 If you don't have a package.json file you can add the tasks to a `gasket.json` file instead
 
-```
+```json
 {
   "example": [
     "echo hello world",
