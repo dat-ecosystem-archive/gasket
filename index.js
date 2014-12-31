@@ -50,9 +50,13 @@ var split = function(pipeline) {
 
   pipeline = [].concat(pipeline || [])
   pipeline.forEach(function(p) {
-    if (p) return current.push(p)
-    list.push(current)
-    current = []
+    if (p.type === "parallel" || p.type === "pipe") {
+      return current.push(p.command)
+    } else if (p.type === "serial") {
+      current.push(p.command)
+      list.push(current)
+      current = []
+    }
   })
 
   if (current.length) list.push(current)
