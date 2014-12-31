@@ -22,8 +22,14 @@ To setup a pipeline add a `gasket` section to your package.json
   },
   "gasket": {
     "example": [
-      "echo hello world",
-      "transform-uppercase"
+      {
+        "command": "echo hello world",
+        "type": "pipe"
+      },
+      {
+        "command": "transform-uppercase",
+        "type": "pipe"
+      }
     ]
   }
 }
@@ -36,17 +42,22 @@ $ gasket run example # will print HELLO WORLD
 ```
 
 `gasket` will spawn each command in the pipeline (it supports modules/commands installed via npm)
-and pipe them together.
+and pipe them together (as long as type is set to "pipe" or "parallel").
 
-If you want to wait for the previous command to finish add `null` to the pipeline
+If you want to wait for the previous command to finish, set the type to "serial" instead.
 
 ```json
 {
   "gasket": {
     "example": [
-      "echo hello world",
-      null,
-      "echo hello afterwards"
+      {
+        "command": "echo hello world",
+        "type": "serial"
+      },
+      {
+        "command": "echo hello afterwards",
+        "type": "serial"
+      }
     ]
   }
 }
@@ -66,8 +77,14 @@ In addition to commands it supports node modules that return streams
 ```json
 {
   "gasket": [
-    "echo hello world",
-    {"module":"./uppercase.js"}
+    {
+      "command": "echo hello world",
+      "type": "parallel"
+    }
+    {
+      "command": {"module":"./uppercase.js"},
+      "type": "parallel"
+    }
   ]
 }
 ```
@@ -96,8 +113,14 @@ If you don't have a package.json file you can add the tasks to a `gasket.json` f
 ```json
 {
   "example": [
-    "echo hello world",
-    "transform-uppercase"
+    {
+      "command": "echo hello world",
+      "type": "pipe"
+    },
+    {
+      "command": "transform-uppercase",
+      "type": "pipe"
+    }
   ]
 }
 ```
@@ -111,8 +134,14 @@ var gasket = require('gasket')
 
 var pipelines = gasket({
   example: [
-    "echo hello world",
-    "transform-uppercase"
+    {
+      "command": "echo hello world",
+      "type": "parallel"
+    },
+    {
+      "command": "transform-uppercase",
+      "type": "parallel"
+    }
   ]
 })
 
