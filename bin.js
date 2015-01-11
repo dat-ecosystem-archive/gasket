@@ -161,16 +161,42 @@ tab('run')
 
         var t = gasket.run(name, opts['--'] || [], {stderr:true})
 
-        if (first) {
-          first = false
-          process.stdin.pipe(t)
-        }
-
         t.pipe(process.stdout)
         t.on('end', loop)
       }
 
       loop()
+    })
+  })
+
+tab('pipe')
+  ('*', pipes)
+  (function(opts) {
+    var names = opts._.slice(1)
+    if (!names.length) names = ['main']
+
+    load(opts, function(gasket) {
+      var streams = names
+        .map(function(name) {
+          if (!gasket.has(name)) {
+            if (name !== 'main') console.error(name+' does not exist')
+            return null
+          }
+          return gasket.pipe(name, opts['--'] || [], {stderr:true})
+        })
+        .filter(function(s) {
+          return s
+        })
+
+      if (!streams.length) return
+
+      var last = [process.stdin].concat(streams).concat(process.stdout).reduce(function(a, b) {
+        return a.pipe(b)
+      })
+
+      last.on('end', function() {
+        process.exit(0)
+      })
     })
   })
 
