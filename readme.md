@@ -42,9 +42,9 @@ $ gasket run example # will print HELLO WORLD
 ```
 
 `gasket` will spawn each command in the pipeline (it supports modules/commands installed via npm)
-and pipe them together (as long as type is set to "pipe" or "parallel").
+and pipe them together (if the type is set to "pipe").
 
-If you want to wait for the previous command to finish, set the type to "serial" instead.
+If you want to wait for the previous command to finish, set the type to "run" instead.
 
 ```json
 {
@@ -52,11 +52,11 @@ If you want to wait for the previous command to finish, set the type to "serial"
     "example": [
       {
         "command": "echo hello world",
-        "type": "serial"
+        "type": "run"
       },
       {
         "command": "echo hello afterwards",
-        "type": "serial"
+        "type": "run"
       }
     ]
   }
@@ -79,11 +79,11 @@ In addition to commands it supports node modules that return streams
   "gasket": [
     {
       "command": "echo hello world",
-      "type": "parallel"
+      "type": "pipe"
     }
     {
       "command": {"module":"./uppercase.js"},
-      "type": "parallel"
+      "type": "pipe"
     }
   ]
 }
@@ -136,11 +136,11 @@ var pipelines = gasket({
   example: [
     {
       "command": "echo hello world",
-      "type": "parallel"
+      "type": "pipe"
     },
     {
       "command": "transform-uppercase",
-      "type": "parallel"
+      "type": "pipe"
     }
   ]
 })
