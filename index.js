@@ -50,16 +50,45 @@ var compile = function(name, pipeline, opts) {
   return pipeline.length > 1 ? pumpify(pipeline) : (pipeline[0] || multistream([]))
 }
 
+
 var split = function(pipeline) {
   var list = []
   var current = []
 
+  var visit = function(p) {
+    //TODO:  handle nesting and test
+    //TODO:  handle commands besides pipe and run
+    if (typeof p.command === "object") { //Nested
+      p.command.map(visit)
+      switch(p.type) {
+        case 'pipe':
+          return current.push(p.command)
+        case 'run':
+          if (current.length) list.push(current)
+          current = []
+          break
+        default:
+          console.log("NOT SUPPORTED")
+          console.log(p.type)
+      }
+    }
+    else { //Not nested
+      switch(p.type) {
+        case 'pipe':
+          return current.push(p.command)
+        case 'run':
+          current.push(p.command)
+          list.push(current)
+          current = []
+          break
+        default:
+          console.log("NOT SUPPORTED")
+          console.log(p.type)
+      }
+    }
+  }
   pipeline = [].concat(pipeline || [])
-  pipeline.forEach(function(p) {
-    if (p) return current.push(p)
-    list.push(current)
-    current = []
-  })
+  pipeline.map(visit)
 
   if (current.length) list.push(current)
   return list
