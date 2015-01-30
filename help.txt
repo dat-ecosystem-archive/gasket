@@ -2,6 +2,7 @@ Usage: gasket [command]
 
 Available commands are:
   run [pipe]            run a pipe (defaults to main)
+  pipe [pipe]           pipe to a pipeline (keeps stdin open)
   exec [script]         execute a script in the local context
   add [pipe] [script]   add a script to a pipe
   rm [pipe]             remove a pipe

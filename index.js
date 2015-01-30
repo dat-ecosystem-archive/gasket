@@ -3,32 +3,38 @@ var execspawn = require('npm-execspawn')
 var xtend = require('xtend')
 var resolve = require('resolve')
 var ndjson = require('ndjson')
-var splicer = require('stream-splicer')
-var duplexer = require('duplexer2')
-var stream = require('stream')
+var duplexify = require('duplexify')
+var pumpify = require('pumpify')
 var fs = require('fs')
+var multistream = require('multistream')
 var debug = require('debug-stream')('gasket')
 
 var compileModule = function(p, opts) {
   if (!p.exports) p.exports = require(resolve.sync(p.module, {basedir:opts.cwd}))
-  return p.json ? splicer([ndjson.parse(), p.exports(p), ndjson.serialize()]) : p.exports(p)
+  return p.json ? pumpify(ndjson.parse(), p.exports(p), ndjson.serialize()) : p.exports(p)
 }
 
 var compileCommand = function(p, opts) {
   var child = execspawn(p.command, p.params, opts)
+
+  child.on('exit', function(code) {
+    if (code) result.destroy(new Error('Process exited with code: '+code))
+  })
 
   if (opts.stderr === true) opts.stderr = process.stderr
 
   if (opts.stderr) child.stderr.pipe(opts.stderr)
   else child.stderr.resume()
 
-  return duplexer(child.stdin, child.stdout)
+  var result = duplexify(child.stdin, child.stdout)
+
+  return result
 }
 
 var compile = function(name, pipeline, opts) {
   var wrap = function(i, msg, stream) {
     if (!process.env.DEBUG) return stream
-    return splicer([debug('#'+i+ ' stdin:  '+msg), stream, debug('#'+i+' stdout: '+msg)])
+    return pumpify(debug('#'+i+ ' stdin:  '+msg), stream, debug('#'+i+' stdout: '+msg))
   }
 
   pipeline = pipeline
@@ -41,23 +47,48 @@ var compile = function(name, pipeline, opts) {
       throw new Error('Unsupported pipeline #'+i+' in '+name)
     })
 
-  return splicer(pipeline)
+  return pipeline.length > 1 ? pumpify(pipeline) : (pipeline[0] || multistream([]))
 }
+
 
 var split = function(pipeline) {
   var list = []
   var current = []
 
-  pipeline = [].concat(pipeline || [])
-  pipeline.forEach(function(p) {
-    if (p.type === "parallel" || p.type === "pipe") {
-      return current.push(p.command)
-    } else if (p.type === "serial") {
-      current.push(p.command)
-      list.push(current)
-      current = []
+  var visit = function(p) {
+    //TODO:  handle nesting and test
+    //TODO:  handle commands besides pipe and run
+    if (typeof p.command === "object") { //Nested
+      p.command.map(visit)
+      switch(p.type) {
+        case 'pipe':
+          return current.push(p.command)
+        case 'run':
+          if (current.length) list.push(current)
+          current = []
+          break
+        default:
+          console.log("NOT SUPPORTED")
+          console.log(p.type)
+      }
     }
-  })
+    else { //Not nested
+      switch(p.type) {
+        case 'pipe':
+          return current.push(p.command)
+        case 'run':
+          current.push(p.command)
+          list.push(current)
+          current = []
+          break
+        default:
+          console.log("NOT SUPPORTED")
+          console.log(p.type)
+      }
+    }
+  }
+  pipeline = [].concat(pipeline || [])
+  pipeline.map(visit)
 
   if (current.length) list.push(current)
   return list
@@ -82,23 +113,25 @@ var gasket = function(config, defaults) {
 
       if (list.length < 2) return compile(key, list[0] || [], opts)
 
-      var output = new stream.PassThrough()
-      var s = splicer(output)
-      var i = 0
+      var fns = list.map(function(pipeline, i) {
+        return function() {
+          var result = compile(key, pipeline, opts)
 
-      var loop = function() {
-        var next = compile(key, list[i++], opts)
-        if (i === list.length) return s.unshift(next)
-        next.on('end', function() {
-          s.shift()
-          loop()
-        })
-        s.unshift(next)
-      }
+          result.on('error', function(err) {
+            // we need to double error handle because
+            // child process errors are emitted AFTER end
+            dup.destroy(err)
+          })
 
-      loop()
+          if (i) result.end()
+          return result
+        }
+      })
 
-      return s
+      var first = fns[0] = fns[0]()
+      var dup = duplexify(first, multistream(fns))
+
+      return dup
     }
     return result
   }, {})
@@ -111,13 +144,19 @@ var gasket = function(config, defaults) {
     return !!pipes[name]
   }
 
-  that.run = function(name, opts, extra) {
+  that.pipe = function(name, opts, extra) {
     if (Array.isArray(opts)) {
       extra = extra || {}
       extra.params = opts
       opts = extra
     }
     return pipes[name] && pipes[name](opts)
+  }
+
+  that.run = function(name, opts, extra) {
+    var stream = that.pipe(name, opts, extra)
+    stream.end()
+    return stream
   }
 
   that.exec = function(cmd, params, opts) {
