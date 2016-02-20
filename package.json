@@ -3,6 +3,9 @@
   "version": "2.0.0",
   "description": "Preconfigured pipelines for node.js",
   "main": "index.js",
+  "scripts": {
+    "test": "standard && node test.js"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/datproject/gasket"
@@ -10,7 +13,7 @@
   "bin": {
     "gasket": "bin.js"
   },
-  "license": "BSD",
+  "license": "BSD-2-Clause",
   "dependencies": {
     "debug-stream": "2.0.2",
     "duplexify": "3.2.0",
@@ -33,7 +36,9 @@
   },
   "homepage": "https://github.com/datproject/gasket",
   "devDependencies": {
-    "through2": "^0.6.5"
+    "standard": "^6.0.7",
+    "through2": "^0.6.5",
+    "transform-uppercase": "^1.0.0"
   },
   "author": "Mathias Buus-Madsen (@mafintosh)"
 }

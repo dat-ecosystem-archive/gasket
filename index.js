@@ -11,10 +11,10 @@ var parallel = require('parallel-multistream')
 var debug = require('debug-stream')('gasket')
 
 /*  Create a stream with cmd and opts*/
-var toStream = function(cmd, opts) {
+var toStream = function (cmd, opts) {
   var child = execspawn(cmd.command, cmd.params, opts)
-  child.on('exit', function(code) {
-    if (code) result.destroy(new Error('Process exited with code: '+code))
+  child.on('exit', function (code) {
+    if (code) result.destroy(new Error('Process exited with code: ' + code))
   })
 
   if (opts.stderr === true) opts.stderr = process.stderr
@@ -22,7 +22,8 @@ var toStream = function(cmd, opts) {
   if (opts.stderr) child.stderr.pipe(opts.stderr)
   else child.stderr.resume()
 
-  return duplexify(child.stdin, child.stdout)
+  var result = duplexify(child.stdin, child.stdout)
+  return result
 }
 
 /*  Create a stream which runs runCommands in sequence */
@@ -40,62 +41,62 @@ var runStream = function (runCommands) {
 /* Run forkCommands in parallel */
 var forkStream = function (forkCommands) {
   var commands = forkCommands.map(function (cmd) {
-      // no lazyness here since we are forking
-      if (cmd.end) cmd.end() // not writable
-      return cmd
+    // no lazyness here since we are forking
+    if (cmd.end) cmd.end() // not writable
+    return cmd
   })
   return parallel(commands)
 }
 
 /* Pipe pipeCommands together */
-var pipeStream = function(pipeCommands) {
+var pipeStream = function (pipeCommands) {
   var pipe = pumpify(pipeCommands)
   pipe.end() // first not writable
   return pipe
 }
 
 /* Map commands according to type */
-var mapToStream = function(commands, type) {
+var mapToStream = function (commands, type) {
   var func
   // Map first command in commands to the rest
-  if (type === "map") func = function(p) { pipes.push(pipeStream([first, p])) }
+  if (type === 'map') func = function (p) { pipes.push(pipeStream([first, p])) }
   // Map the rest of the commands to the first command
-  if (type === "reduce") func = function(p) { pipes.push(pipeStream([p, first])) }
+  if (type === 'reduce') func = function (p) { pipes.push(pipeStream([p, first])) }
   var pipes = []
   var first = commands.shift()
   commands.map(func)
   return forkStream(pipes)
 }
 
-var compileModule = function(p, opts) {
-  if (!p.exports) p.exports = require(resolve.sync(p.module, {basedir:opts.cwd}))
+var compileModule = function (p, opts) {
+  if (!p.exports) p.exports = require(resolve.sync(p.module, {basedir: opts.cwd}))
   return p.json ? pumpify(ndjson.parse(), p.exports(p), ndjson.serialize()) : p.exports(p)
 }
 
-var compile = function(name, pipeline, opts) {
-  var wrap = function(i, msg, stream) {
+var compile = function (name, pipeline, opts) {
+  var wrap = function (i, msg, stream) {
     if (!process.env.DEBUG) return stream
-    return pumpify(debug('#'+i+ ' stdin:  '+msg), stream, debug('#'+i+' stdout: '+msg))
+    return pumpify(debug('#' + i + ' stdin:  ' + msg), stream, debug('#' + i + ' stdout: ' + msg))
   }
   var type = pipeline[0].type
-  var visit = function(p, i) {
-    if (typeof p === 'object') p = {command:p.command}
-    if (typeof p === 'function') p = {exports:p, module:true}
+  var visit = function (p, i) {
+    if (typeof p === 'object') p = {command: p.command}
+    if (typeof p === 'function') p = {exports: p, module: true}
     if (!p.params) p.params = [].concat(name, opts.params || [])
-    if (p.command) return wrap(i, '('+p.command+')', toStream(p, opts))
-    if (p.module) return wrap(i, '('+p.module+')', compileModule(p, opts))
-    throw new Error('Unsupported pipeline #'+i+' in '+name)
+    if (p.command) return wrap(i, '(' + p.command + ')', toStream(p, opts))
+    if (p.module) return wrap(i, '(' + p.module + ')', compileModule(p, opts))
+    throw new Error('Unsupported pipeline #' + i + ' in ' + name)
   }
   pipeline = pipeline.map(visit)
   return [type, pipeline]
 }
 
-var split = function(pipeline) {
+var split = function (pipeline) {
   var list = []
   var current = []
-  
+
   var prevType = null
-  var visit = function(p) {
+  var visit = function (p) {
     if (p.type === prevType) {
       return current.push(p)
     } else {
@@ -113,47 +114,47 @@ var split = function(pipeline) {
   return list
 }
 
-var gasket = function(config, defaults) {
+var gasket = function (config, defaults) {
   if (!defaults) defaults = {}
   if (!config) config = {}
-  if (Array.isArray(config)) config = {main:config}
+  if (Array.isArray(config)) config = {main: config}
 
   var that = {}
 
   that.cwd = defaults.cwd = path.resolve(defaults.cwd || '.')
   that.env = defaults.env = defaults.env || process.env
 
-  var pipes = Object.keys(config).reduce(function(result, key) {
+  var pipes = Object.keys(config).reduce(function (result, key) {
     var list = split(config[key])
 
-    result[key] = function(opts) {
-      if (Array.isArray(opts)) opts = {params:opts}
+    result[key] = function (opts) {
+      if (Array.isArray(opts)) opts = {params: opts}
       opts = xtend(defaults, opts)
 
       var mainPipeline = []
       var bkgds = []
-      list.forEach(function(pipeline) {
+      list.forEach(function (pipeline) {
         var compiled = compile(key, pipeline, opts)
         var type = compiled[0]
         var p = compiled[1]
-        switch(type) {
-          case("pipe"):
+        switch (type) {
+          case ('pipe'):
             mainPipeline.push(pipeStream(p))
             break
-          case("run"):
+          case ('run'):
             mainPipeline.push(runStream(p))
             break
-          case("fork"):
+          case ('fork'):
             mainPipeline.push(forkStream(p))
             break
-          case("background"):
+          case ('background'):
             bkgds = bkgds.concat(p)
             break
-          case("map"):
-            mainPipeline.push(mapToStream(p, "map"))
+          case ('map'):
+            mainPipeline.push(mapToStream(p, 'map'))
             break
-          case("reduce"):
-            mainPipeline.push(mapToStream(p, "reduce"))
+          case ('reduce'):
+            mainPipeline.push(mapToStream(p, 'reduce'))
             break
           default:
             throw new Error('Unsupported Type: ' + type)
@@ -165,7 +166,7 @@ var gasket = function(config, defaults) {
       // Handle background processes
       if (bkgds.length) {
         bkgds = forkStream(bkgds)
-        mainPipeline.on('end', function() {
+        mainPipeline.on('end', function () {
           bkgds.destroy()
         })
         return parallel([mainPipeline, bkgds])
@@ -176,15 +177,15 @@ var gasket = function(config, defaults) {
     return result
   }, {})
 
-  that.list = function() {
+  that.list = function () {
     return Object.keys(pipes)
   }
 
-  that.has = function(name) {
+  that.has = function (name) {
     return !!pipes[name]
   }
 
-  that.pipe = function(name, opts, extra) {
+  that.pipe = function (name, opts, extra) {
     if (Array.isArray(opts)) {
       extra = extra || {}
       extra.params = opts
@@ -193,29 +194,28 @@ var gasket = function(config, defaults) {
     return pipes[name] && pipes[name](opts)
   }
 
-  that.run = function(name, opts, extra) {
+  that.run = function (name, opts, extra) {
     var stream = that.pipe(name, opts, extra)
     if (stream.end) stream.end()
     return stream
   }
 
-  that.exec = function(cmd, params, opts) {
+  that.exec = function (cmd, params, opts) {
     if (!Array.isArray(params)) return that.exec(cmd, [], params)
-    return toStream({command:cmd, params:['exec'].concat(params)}, opts || {})
+    return toStream({command: cmd, params: ['exec'].concat(params)}, opts || {})
   }
 
-  that.toJSON = function() {
+  that.toJSON = function () {
     return config
   }
   return that
 }
 
-
-gasket.load = function(cwd, opts, cb) {
+gasket.load = function (cwd, opts, cb) {
   if (typeof opts === 'function') return gasket.load(cwd, null, opts)
   if (!opts) opts = {}
 
-  var ready = function(pipelines, filename) {
+  var ready = function (pipelines, filename) {
     var name = path.basename(filename)
     if (name !== 'gasket.json') pipelines = pipelines.gasket || {}
     var g = gasket(pipelines, opts)
@@ -223,9 +223,9 @@ gasket.load = function(cwd, opts, cb) {
     cb(null, g)
   }
 
-  var read = function(file, cb) {
+  var read = function (file, cb) {
     file = path.resolve(process.cwd(), path.join(cwd || '.', file))
-    fs.readFile(file, 'utf-8', function(err, data) {
+    fs.readFile(file, 'utf-8', function (err, data) {
       if (err) return cb(err)
 
       try {
@@ -239,15 +239,15 @@ gasket.load = function(cwd, opts, cb) {
     })
   }
 
-  read('.', function(err, data, filename) {
+  read('.', function (err, data, filename) {
     // If it found ./package.json file but couldn't be parsed
-    if (err && err.name === 'SyntaxError') return cb(err);
-    if (data) return ready(data, filename);
-    read('gasket.json', function(err, data, filename) {
+    if (err && err.name === 'SyntaxError') return cb(err)
+    if (data) return ready(data, filename)
+    read('gasket.json', function (err, data, filename) {
       // If it found gasket.json it but couldn't be parsed
-      if (err && err.name === 'SyntaxError') return cb(err);
-      if (data) return ready(data, filename);
-      read('package.json', function(err, data, filename) {
+      if (err && err.name === 'SyntaxError') return cb(err)
+      if (data) return ready(data, filename)
+      read('package.json', function (err, data, filename) {
         if (err) return cb(err)
         ready(data, filename)
       })
