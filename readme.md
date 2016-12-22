@@ -1,5 +1,7 @@
 # gasket
 
+[![Join the chat at https://gitter.im/datproject/gasket](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/datproject/gasket?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 Preconfigured pipelines for node.js
 
 ![logo](https://raw.githubusercontent.com/datproject/gasket/master/gasket.png)
